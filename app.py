@@ -29,6 +29,10 @@ CORS(app, resources={r"/process": {"origins": "*"}})  # Allow CORS for Flutter a
 if not os.path.exists('static'):
     os.makedirs('static')
 
+# Global variables
+reverse_crop_dict = {}
+guide_lookup = {}
+
 # Load or train the model
 def load_or_train_model():
     model_path = 'model.pkl'
@@ -170,17 +174,20 @@ def load_or_train_model():
 
     return best_model, mx, sc
 
+
 # Load or train model and scalers
 best_model, mx, sc = load_or_train_model()
 
 # Function for crop recommendation with input validation
+numeric_columns = ['N (kg/ha)', 'P (kg/ha)', 'K (kg/ha)', 'Temp (°C)', 'Humidity (%)', 'pH', 'Rainfall (mm)']
+
 def recommendation(N, P, K, temperature, humidity, ph, rainfall):
-    # Basic input validation
     if not (0 <= ph <= 14 and 0 <= humidity <= 100):
         raise ValueError("pH must be between 0 and 14, and humidity between 0 and 100.")
-    
-    input_data = pd.DataFrame([[N, P, K, temperature, humidity, ph, rainfall]], 
-                              columns=numeri_columns)
+
+    input_data = pd.DataFrame([[N, P, K, temperature, humidity, ph, rainfall]],
+                              columns=numeric_columns)
+
     mx_features = mx.transform(input_data)
     sc_mx_features = sc.transform(mx_features)
     prediction = best_model.predict(sc_mx_features)
@@ -198,7 +205,7 @@ def process():
         # Extract and validate input values with defaults
         N = float(data.get('N', 0))
         P = float(data.get('P', 0))
-        K = float(data.get('K', 0))
+        K = float(data.get('K', 0)) 
         temperature = float(data.get('temperature', 0))
         humidity = float(data.get('humidity', 0))
         ph = float(data.get('ph', 0))
